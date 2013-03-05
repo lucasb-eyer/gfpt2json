@@ -16,14 +16,14 @@ First, run gfortran the same way you usually do to compile your program, but
 add the `-fdump-parse-tree` flag and redirect the standard output (which is the
 parsetree) to a file. For example:
 
-```
+```bash
 $ gfortran -fdump-parse-tree -c myfile.f > myfile.pt
 ```
 
 Now, feed that parsetree file to `gfpt2json` and redirect its output to
 whatever file you want to store the json in:
 
-```
+```bash
 $ gfpt2json < myfile.pt > myfile.json
 ```
 
