@@ -213,6 +213,8 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
  /* Any identifier */
 <normal>[a-zA-Z][a-zA-Z_0-9]*   { yylval = mkval(yytext, yyleng, 0); return TOK_IDENTIFIER; }
 <normal>'[a-zA-Z][a-zA-Z_0-9]*' { yylval = mkval(yytext, yyleng-1, 1); return TOK_QUOTED_IDENTIFIER; }
+ /* Interestingly, RETURN is always followed by a whitespace. */
+<normal>"RETURN"" "? { yylval = Json::Value("RETURN"); return TOK_IDENTIFIER; }
 
 <normal>\d+     { yylval = Json::Value(Json::Int(strtol(yytext, 0, 10))); return TOK_NUMBER; }
 
@@ -220,6 +222,7 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 
  /* Unfortunately, gcc prints the ELSE command on the same line as the */
  /* statement preceding it. We need to split it to its own line. */
+ /* TODO: sometimes this is ELSE IF FOO BAR BAZ! */
 <normal>" ".*" "+"ELSE" {
     yylval = mkval(yytext, yyleng-4, 1);
 
