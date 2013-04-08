@@ -36,8 +36,6 @@ extern "C" FILE *yyin;
 
 void yyerror(const char *s);
 
-extern "C" unsigned long g_line, g_col;
-
 #define YYSTYPE Json::Value
 
 Json::Value g_file;
@@ -64,11 +62,9 @@ Json::Value g_file;
 %token TOK_LABELLED
 
 %debug
+%locations
 
 %%
-// this is the actual grammar that bison will parse, but for right now it's just
-// something silly to echo to the screen what bison gets from flex.  We'll
-// make a real one shortly:
 parsetree:
     namespace children { g_file = $1; g_file["children"] = $2; }
     ;
@@ -125,11 +121,6 @@ code_section:
     TOK_CODE code_lines { $$ = $2; }
     |
     TOK_CODE { $$ = Json::Value(); }
-    /* TODO */
-    /* Cool would be a flat one and a hierarchical one.
-       If not, then do hierarchical since it can be flattened.
-       Something like codelines | INDENT codelines UNINDENT
-    */
     ;
 
 code_lines:
@@ -173,12 +164,15 @@ child:
 
 %%
 
+const char* g_current_filename = "stdin";
+
 int main(int argc, char* argv[]) {
     yyin = stdin;
     yydebug = 1;
 
     if(argc == 2) {
         yyin = fopen(argv[1], "r");
+        g_current_filename = argv[1];
         if(!yyin) {
             perror(argv[1]);
             return 1;
@@ -195,7 +189,7 @@ int main(int argc, char* argv[]) {
 }
 
 void yyerror(const char *s) {
-    cerr << "filename:" << g_line << ":" << g_col << ": Parse error: " << s << endl;
+    cerr << g_current_filename << ":" << yylloc.first_line << ":" << yylloc.first_column << "-" << yylloc.last_column << ": Parse error: " << s << endl;
     // Might as well halt now.
     exit(-1);
 }

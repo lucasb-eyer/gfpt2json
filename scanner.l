@@ -21,32 +21,45 @@ IN THE SOFTWARE.
 */
 
 %{
-/* Don't mangle yylex please! */
-#define YY_DECL extern "C" int yylex()
+#include <iostream>
+#include <string>
+#include <stack>
+#include "json/json.h"
+#include "utils.hpp"
 
 /* globals to track current indentation */
 int g_current_line_indent = 0;   /* indentation of the current line */
-int g_indent_level = 0;          /* indentation level passed to the parser */
+std::stack<size_t> g_indent_levels;
 
-/* globals to track current cursor position */
-unsigned long g_line = 1;
-unsigned long g_col = 0;
-
-/* TODO: error on tabs/spaces? */
+/* TODO: error on tabs/spaces mix? */
 static const unsigned int TAB_WIDTH = 2;
 
-#include <iostream>
-#include <sstream>
-#include <string>
+extern const char* g_current_filename;
 
-#include "json/json.h"
-
+/* Don't mangle yylex please! */
+#define YY_DECL extern "C" int yylex()
 #define YYSTYPE Json::Value
 #include "parser.hh"
 
-#include "utils.hpp"
+#define YY_USER_INIT { \
+        g_indent_levels.push(0); \
+        BEGIN(initial); \
+    }
 
-// Just a short-hand.
+int yycolumn = 1;
+void set_yycolumn(int val) {
+    yycolumn = val;
+    yylloc.first_column = yycolumn;
+    yylloc.last_column = yycolumn + yyleng - 1;
+}
+
+#define YY_USER_ACTION { \
+    yylloc.first_line = yylloc.last_line = yylineno; \
+    set_yycolumn(yycolumn); \
+    yycolumn += yyleng; \
+}
+
+ // Just a short-hand.
 Json::Value mkval(const char* yytext, size_t yylen, size_t pre)
 {
     return Json::Value(std::string(yytext+pre, yylen-pre));
@@ -60,6 +73,7 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 %}
 
  /* This is a sub-parser (state) for indentation-sensitive scoping */
+%x initial
 %x indent
 %s normal
 
@@ -71,44 +85,90 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 
 %option debug
 %%
-    BEGIN(normal);
-    int indent_caller;
+    int indent_caller = normal;
 
-<*>.  { g_col++; REJECT; }
-<*>\n { g_col = 0; g_line++; REJECT; }
-<*><<EOF>>      {
-                    if(g_current_line_indent < g_indent_level) {
-                        g_indent_level = g_current_line_indent;
-                        std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_level << ")" << std::endl;
-                        return TOK_OUTDENT;
-                    }
-                    return 0;
-                }
+ /* This helps to keep track of the column number.
+  * Note that it won't work if you have a rule which includes a newline and is
+  * longer than one character because in that case that rule will be favored
+  * and this one here won't get called.
+  * TL;DR: If you have a rule which includes \n and more, you need to reset
+  *        yycolumn inside that rule!
+  */
+<*>\n { set_yycolumn(0); yylineno--; REJECT; }
 
+ /* Everything runs in the <normal> mode and enters the <indent> mode
+    when a newline symbol is encountered.
+    There is no newline symbol before the first line, so we need to go
+    into the <indent> mode by hand there.
+ */
+<initial>.  { set_yycolumn(yycolumn-1); indent_caller = normal; yyless(0); BEGIN(indent); }
+<initial>\n { indent_caller = normal; yyless(0); BEGIN(indent); }
+
+ /* The following are the rules that keep track of indentation. */
 <indent>" "     { g_current_line_indent++; }
 <indent>\t      { g_current_line_indent = (g_current_line_indent + TAB_WIDTH) & ~(TAB_WIDTH-1); }
 <indent>\n      { g_current_line_indent = 0; /* ignoring blank line */ }
-<indent>.       {
-                    std::cerr << "=== currline: " << g_current_line_indent << ", level: " << g_indent_level << std::endl;
-                    /* g_col--; */
-                    unput(*yytext);
-                    if(g_current_line_indent > g_indent_level) {
-                        //g_indent_level++;
-                        g_indent_level = g_current_line_indent;
-                        std::cerr << "=== INDENT (currline: " << g_current_line_indent << ", level: " << g_indent_level << ")" << std::endl;
-                        return TOK_INDENT;
-                    } else if(g_current_line_indent < g_indent_level) {
-                        //g_indent_level--;
-                        g_indent_level = g_current_line_indent;
-                        std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_level << ")" << std::endl;
+<indent><<EOF>> {
+                    // When encountering the end of file, we want to emit an
+                    // outdent for all indents currently left.
+                    if(g_indent_levels.top() != 0) {
+                        g_indent_levels.pop();
+                        std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
+
+                        // See the same code below (<indent>.) for a rationale.
+                        if(g_current_line_indent != g_indent_levels.top()) {
+                            unput('\n');
+                            for(size_t i = 0 ; i < g_indent_levels.top() ; ++i) {
+                                unput(' ');
+                            }
+                        } else {
+                            BEGIN(indent_caller);
+                        }
+
                         return TOK_OUTDENT;
                     } else {
-                        std::cerr << "=== LEAVING (currline: " << g_current_line_indent << ", level: " << g_indent_level << ")" << std::endl;
+                        yyterminate();
+                    }
+                }
+
+<indent>.       {
+                    unput(*yytext);
+                    set_yycolumn(yycolumn-1);
+
+                    // Indentation level has increased. It can only ever
+                    // increase by one level at a time. Remember how many
+                    // spaces this level has and emit an indentation token.
+                    if(g_current_line_indent > g_indent_levels.top()) {
+                        std::cerr << "=== INDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
+                        g_indent_levels.push(g_current_line_indent);
+                        BEGIN(indent_caller);
+                        return TOK_INDENT;
+                    } else if(g_current_line_indent < g_indent_levels.top()) {
+                        // Outdenting is the most difficult, as we might need to
+                        // outdent multiple times at once, but flex doesn't allow
+                        // emitting multiple tokens at once! So we fake this by
+                        // 'unput'ting fake lines which will give us the next
+                        // outdent.
+                        g_indent_levels.pop();
+                        std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
+
+                        if(g_current_line_indent != g_indent_levels.top()) {
+                            unput('\n');
+                            for(size_t i = 0 ; i < g_indent_levels.top() ; ++i) {
+                                unput(' ');
+                            }
+                        } else {
+                            BEGIN(indent_caller);
+                        }
+
+                        return TOK_OUTDENT;
+                    } else {
+                        // No change in indentation, not much to do here...
                         BEGIN(indent_caller);
                     }
                 }
 
-<normal>\n[0-9]*      { g_current_line_indent = 0; indent_caller = normal; BEGIN(indent); }
+<normal>\n[0-9]*      { g_current_line_indent = 0; indent_caller = YY_START; BEGIN(indent); }
 
  /* A type and its size of the form (REAL 8) */
 <normal>\([A-Z]+\ [0-9]+(\ [0-9]*)?\)  { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
@@ -178,6 +238,6 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
  /* A space (not included) and then everything up to (and not including) the end of the line. */
 <normal>" ".*   { yylval = mkval(yytext, yyleng, 1); return TOK_REST; }
 
-(.|\n)  { std::cerr << "filename:" << g_line << ":" << g_col << ": Unexpected character: " << yytext << std::endl; exit(1); }
+(.|\n)  { std::cerr << g_current_filename << ":" << yylineno << ":" << yycolumn << ": Unexpected character: " << yytext << std::endl; exit(1); }
 
 %%
