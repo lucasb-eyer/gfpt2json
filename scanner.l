@@ -27,6 +27,13 @@ IN THE SOFTWARE.
 #include "json/json.h"
 #include "utils.hpp"
 
+/* == some workaround hacks. == */
+/* The indentation of the current code block. Needed for labeled lines, which suck btw. */
+size_t g_current_codeblock_indent = 0;
+/* The label to emit along with the next non-indentation related token. */
+Json::Value g_previous_label;
+/* == end of workaround hacks == */
+
 /* globals to track current indentation */
 int g_current_line_indent = 0;   /* indentation of the current line */
 std::stack<size_t> g_indent_levels;
@@ -68,6 +75,18 @@ Json::Value mkval(const char* yytext, size_t yylen, size_t pre)
 Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' ')
 {
     return split(std::string(yytext+pre, yylen-pre));
+}
+
+size_t prev_indent_level()
+{
+    size_t ret = g_indent_levels.empty() ? 0 : g_indent_levels.top();
+    if(g_indent_levels.size() > 1) {
+        size_t tmp = g_indent_levels.top();
+        g_indent_levels.pop();
+        ret = g_indent_levels.top();
+        g_indent_levels.push(tmp);
+    }
+    return ret;
 }
 
 %}
@@ -190,21 +209,47 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 }
 <normal>"type spec : "      { return TOK_TYPESPEC; }
 
-<normal>"code:" { return TOK_CODE; }
+ /* Here we need to keep track of the indentation level of the following code,
+    since we'll often times have to fake it. Thank you, labelled lines. */
+<normal>"code:" { g_current_codeblock_indent = g_indent_levels.top(); return TOK_CODE; }
 
 <normal>CONTAINS { return TOK_CONTAINS; }
 
- /* Tokens for finding labelled statements. They suck! */
-<normal>\n[0-9]+" "+"CONTINUE"  { yylval = mkval(yytext+1, yyleng-1, 0); return TOK_LABELLED; }
- /* This one is ugly, we need its indentation! (It's the end block of a DO.) */
- /* So what we do is to "remove" the number and scan again. */
-<normal>\n[0-9]+" "+"NOP" {
-    size_t lennumber = std::string(yytext).find_first_of(' ', 0);
-    yyless(lennumber);
-    // Unfortunately, GCC seems to overwrite the indentation spaces
-    // if the number is longer than 2 digits and thus in that case,
-    // there would be missing spaces for the indentation. Add them!
-    for(size_t i = 3 ; i < lennumber ; ++i) {
+ /* The labelled ones are _really_ ugly.
+    This rule tries to eat up the label only and put the rest back into the
+    input at the correct indentation level.
+
+    The label always begins at the first column and takes 6 characters.
+    (left-aligned, filled with whitespace on the right; 7 including the \n)
+    What follows these 6 characters is a sometimes correctly and sometimes
+    incorrectly indented line. This line is always missing the 'baseline
+    indentation', i.e. the indentation of the current code block.
+
+    I couldn't further specify the "sometimes", so this rule tries to detect
+    these cases and 'fix' them by placing the rest of the line back such that
+    it will create one OUTDENT token at most.
+  */
+<normal>\n[0-9]+" "+.* {
+    // Keep track of the label we need to attach to the next identifier.
+    // TODO: Make use of this :)
+    g_previous_label = Json::Value(Json::Int64(strtol(yytext, 0, 10)));
+
+    // The amount of spaces present after the label's 6 characters.
+    // This is the indentation at which the rest would be placed.
+    const size_t present_spaces = std::string(yytext + 7).find_first_not_of(' ', 0);
+
+    // Figure out the indentation one level before the current one.
+    const size_t prev_indent = prev_indent_level();
+    size_t where_to_put = g_current_codeblock_indent;
+    if(where_to_put + present_spaces < prev_indent) {
+        // If the suggested placement would produce more than one outdent token,
+        // disregard the suggested placement and place it so as to generate only one.
+        where_to_put = prev_indent - present_spaces;
+    }
+    // Put back everything but the newline and the 6 fields for the label.
+    yyless(7);
+    // And put the "right" amount of whitespaces to get the correct indentation.
+    for(size_t i = 0 ; i < where_to_put ; ++i) {
         unput(' ');
     }
     unput('\n');
