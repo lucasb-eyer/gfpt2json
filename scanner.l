@@ -171,7 +171,9 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 <normal>\n[0-9]*      { g_current_line_indent = 0; indent_caller = YY_START; BEGIN(indent); }
 
  /* A type and its size of the form (REAL 8) */
-<normal>\([A-Z]+\ [0-9]+(\ [0-9]*)?\)  { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
+<normal>"("[A-Z]+" "[0-9]+(" "[0-9]*)?")"  { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
+ /* Character sometimes has weird special thingys following it. */
+<normal>"(CHARACTER ".* { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
 
  /* The "Namespace:" part, so that it isn't matched by the "identifier" below. */
 <normal>"Namespace: ".*                { yylval = mkval(yytext, yyleng, 11); return TOK_NS; }
