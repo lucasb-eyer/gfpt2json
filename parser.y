@@ -59,7 +59,6 @@ Json::Value g_file;
 
 %token TOK_CODE
 %token TOK_ENDBLOCK
-%token TOK_LABELLED
 
 %debug
 %locations
@@ -153,9 +152,6 @@ code_line:
     |
     TOK_IDENTIFIER
     { $$ = Json::Value(); $$["op"] = $1; $$["args"] = ""; }
-    |
-    TOK_LABELLED
-    { $$ = Json::Value(); $$["op"] = "labelled"; $$["args"] = $1; }
     ;
 
 children:
