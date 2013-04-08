@@ -208,12 +208,6 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
     unput('\n');
 }
 
- /* End of block tokens (if, do, and friends). */
-<normal>"ENDIF"       { return TOK_ENDBLOCK; }
-<normal>"END DO"      { return TOK_ENDBLOCK; }
-<normal>"NOP"         { return TOK_ENDBLOCK; }
-<normal>"NOP"" "+"ELSE" { yyless(3); unput(' '); unput(' '); unput('\n'); return TOK_ENDBLOCK; }
-
  /* Any identifier */
 <normal>[a-zA-Z][a-zA-Z_0-9]*   { yylval = mkval(yytext, yyleng, 0); return TOK_IDENTIFIER; }
 <normal>'[a-zA-Z][a-zA-Z_0-9]*' { yylval = mkval(yytext, yyleng-1, 1); return TOK_QUOTED_IDENTIFIER; }

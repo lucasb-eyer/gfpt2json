@@ -132,10 +132,10 @@ code_lines:
     ;
 
 code_line:
-    TOK_IDENTIFIER TOK_REST TOK_INDENT code_lines TOK_OUTDENT TOK_ENDBLOCK
+    TOK_IDENTIFIER TOK_REST TOK_INDENT code_lines TOK_OUTDENT
     { $$ = Json::Value(); $$["op"] = $1; $$["args"] = $2; $$["children"] = $4; }
     |
-    TOK_IDENTIFIER TOK_INDENT code_lines TOK_OUTDENT TOK_ENDBLOCK
+    TOK_IDENTIFIER TOK_INDENT code_lines TOK_OUTDENT
     { $$ = Json::Value(); $$["op"] = $1; $$["args"] = ""; $$["children"] = $3; }
     |
     TOK_IDENTIFIER TOK_REST
@@ -158,7 +158,7 @@ children:
 
 child:
     TOK_CONTAINS
-    TOK_INDENT namespace 
+    TOK_INDENT namespace TOK_OUTDENT
     { $$ = $3; }
     ;
 
