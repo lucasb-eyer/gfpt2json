@@ -53,7 +53,7 @@ Json::Value g_file;
 %token TOK_QUOTED_IDENTIFIER
 %token TOK_CONTAINS
 
-%token TOK_NS TOK_PROCNAME
+%token TOK_NS TOK_PROCNAME TOK_DASHES
 
 %token TOK_SYMTREE TOK_TYPESPEC TOK_ATTRS TOK_ARGLIST TOK_ARRSPEC TOK_RESULT TOK_VALUE
 
@@ -66,7 +66,17 @@ Json::Value g_file;
 
 %%
 parsetree:
-    namespace children { g_file = $1; g_file["children"] = $2; }
+    parsetree namespace_with_children TOK_DASHES { g_file.append($2); }
+    |
+    namespace_with_children TOK_DASHES { g_file.append($1); }
+    |
+    namespace_with_children { g_file.append($1); }
+    ;
+
+namespace_with_children:
+    namespace children { $$ = $1; $$["children"] = $2; }
+    |
+    namespace { $$ = $1; }
     ;
 
 namespace:

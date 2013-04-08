@@ -229,6 +229,9 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
     return TOK_REST;
 }
 
+ /* Sometimes appears at the end of a toplevel namespace. */
+<normal>"------------------------------------------" { return TOK_DASHES; }
+
  /* A space (not included) and then everything up to (and not including) the end of the line. */
 <normal>" ".*   { yylval = mkval(yytext, yyleng, 1); return TOK_REST; }
 
