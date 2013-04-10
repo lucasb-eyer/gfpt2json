@@ -207,7 +207,7 @@ size_t prev_indent_level()
 <normal>"Procedure bindings:".*  { yylval = mkval(yytext, yyleng, 20); return TOK_PROCBINDINGS; }
 <normal>"Operator bindings:".*   { yylval = mkval(yytext, yyleng, 19); return TOK_OPBINDINGS; }
 <normal>"Generic interfaces: ".* { yylval = mkval(yytext, yyleng, 21); return TOK_GENIFACE; }
-<normal>"symtree: '"[a-zA-Z0-9_]*"'".* {
+<normal>"symtree: '"[a-zA-Z0-9_@]*"'".* {
     size_t len = std::string(yytext).find_first_of('\'', 10);
     yylval = mkval(yytext, std::min(len, yyleng), 10);
     return TOK_SYMTREE;
