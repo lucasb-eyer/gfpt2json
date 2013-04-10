@@ -55,7 +55,8 @@ Json::Value g_file;
 
 %token TOK_NS TOK_PROCNAME TOK_DASHES
 
-%token TOK_SYMTREE TOK_TYPESPEC TOK_ATTRS TOK_ARGLIST TOK_ARRSPEC TOK_RESULT TOK_VALUE
+%token TOK_SYMTREE TOK_TYPESPEC TOK_ATTRS TOK_ARGLIST TOK_ARRSPEC TOK_RESULT TOK_VALUE TOK_GENIFACE
+%token TOK_COMPONENTS TOK_HASH TOK_PROCBINDINGS TOK_OPBINDINGS
 
 %token TOK_CODE
 %token TOK_ENDBLOCK
@@ -102,13 +103,15 @@ namespace_symtable_entry:
     |
     TOK_SYMTREE
     TOK_INDENT
-        TOK_TYPESPEC TOK_TYPE TOK_ATTRS
+        TOK_TYPESPEC TOK_TYPE
+        TOK_ATTRS
     TOK_OUTDENT
     { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $4; $$["attrs"] = $5; }
     |
     TOK_SYMTREE
     TOK_INDENT
-        TOK_TYPESPEC TOK_TYPE TOK_ATTRS
+        TOK_TYPESPEC TOK_TYPE
+        TOK_ATTRS
         namespace_symtable_entry_rest
     TOK_OUTDENT
     { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $4; $$["attrs"] = $5; $$ = merge($$, $6); }
@@ -121,9 +124,16 @@ namespace_symtable_entry_rest:
     |
     TOK_RESULT  { $$ = Json::Value(); $$["result"] = $1; }
     |
+    TOK_VALUE   { $$ = Json::Value(); $$["value"] = $1; }
+    |
+    TOK_GENIFACE { $$ = Json::Value(); $$["interface"] = $1; }
+    |
     TOK_RESULT TOK_ARGLIST { $$ = Json::Value(); $$["result"] = $1; $$["args"] = $2; }
     |
     TOK_VALUE TOK_ARRSPEC { $$ = Json::Value(); $$["value"] = $1; $$["arrayspec"] = $2; }
+    |
+    TOK_COMPONENTS TOK_HASH TOK_PROCBINDINGS TOK_OPBINDINGS
+    { $$ = Json::Value(); $$["components"] = $1; $$["hash"] = $2; $$["procbindings"] = $3; $$["opbindings"] = $4; }
     ;
 
 code_section:

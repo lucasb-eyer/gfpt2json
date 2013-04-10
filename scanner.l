@@ -69,7 +69,11 @@ void set_yycolumn(int val) {
  // Just a short-hand.
 Json::Value mkval(const char* yytext, size_t yylen, size_t pre)
 {
-    return Json::Value(std::string(yytext+pre, yylen-pre));
+    if(yylen > pre) {
+        return Json::Value(std::string(yytext+pre, yylen-pre));
+    } else {
+        return Json::Value();
+    }
 }
 
 Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' ')
@@ -195,19 +199,24 @@ size_t prev_indent_level()
 <normal>"(CHARACTER ".* { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
 
  /* The "Namespace:" part, so that it isn't matched by the "identifier" below. */
-<normal>"Namespace: ".*                { yylval = mkval(yytext, yyleng, 11); return TOK_NS; }
-<normal>"procedure name = ".*          { yylval = mkval(yytext, yyleng, 17); return TOK_PROCNAME; }
-<normal>"attributes: ".*               { yylval = mklst(yytext, yyleng-1, 13); return TOK_ATTRS; }
-<normal>"Array spec:".*                { yylval = mkval(yytext, yyleng, 11); return TOK_ARRSPEC; }
-<normal>"result: ".*                   { yylval = mkval(yytext, yyleng,  8); return TOK_RESULT; }
-<normal>"value: ".*                    { yylval = mkval(yytext, yyleng,  7); return TOK_VALUE; }
-<normal>"Formal arglist: ".*           { yylval = mklst(yytext, yyleng, 16); return TOK_ARGLIST; }
+<normal>"Namespace: ".*          { yylval = mkval(yytext, yyleng, 11); return TOK_NS; }
+<normal>"procedure name = ".*    { yylval = mkval(yytext, yyleng, 17); return TOK_PROCNAME; }
+<normal>"type spec : "           { return TOK_TYPESPEC; }
+<normal>"attributes: ".*         { yylval = mklst(yytext, yyleng-1, 13); return TOK_ATTRS; }
+<normal>"Array spec:".*          { yylval = mkval(yytext, yyleng, 11); return TOK_ARRSPEC; }
+<normal>"result: ".*             { yylval = mkval(yytext, yyleng,  8); return TOK_RESULT; }
+<normal>"value: ".*              { yylval = mkval(yytext, yyleng,  7); return TOK_VALUE; }
+<normal>"Formal arglist: ".*     { yylval = mklst(yytext, yyleng, 16); return TOK_ARGLIST; }
+<normal>"components: ".*         { yylval = mkval(yytext, yyleng, 12); return TOK_COMPONENTS; }
+<normal>"hash: "[0-9]+           { yylval = mkval(yytext, yyleng,  6); return TOK_HASH; }
+<normal>"Procedure bindings:".*  { yylval = mkval(yytext, yyleng, 20); return TOK_PROCBINDINGS; }
+<normal>"Operator bindings:".*   { yylval = mkval(yytext, yyleng, 19); return TOK_OPBINDINGS; }
+<normal>"Generic interfaces: ".* { yylval = mkval(yytext, yyleng, 21); return TOK_GENIFACE; }
 <normal>"symtree: '"[a-zA-Z0-9_]*"'".* {
     size_t len = std::string(yytext).find_first_of('\'', 10);
     yylval = mkval(yytext, std::min(len, yyleng), 10);
     return TOK_SYMTREE;
 }
-<normal>"type spec : "      { return TOK_TYPESPEC; }
 
  /* Here we need to keep track of the indentation level of the following code,
     since we'll often times have to fake it. Thank you, labelled lines. */
