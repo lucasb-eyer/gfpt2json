@@ -106,21 +106,22 @@ namespace_symtable_entry:
     |
     TOK_SYMTREE
     TOK_INDENT
-        TOK_TYPESPEC
-        TOK_ATTRS
+        namespace_symtable_entry_attrs
     TOK_OUTDENT
-    { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $3; $$["attrs"] = $4; }
-    |
-    TOK_SYMTREE
-    TOK_INDENT
-        TOK_TYPESPEC
-        TOK_ATTRS
-        namespace_symtable_entry_rest
-    TOK_OUTDENT
-    { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $3; $$["attrs"] = $4; $$ = merge($$, $5); }
+    { $$ = Json::Value(); $$["name"] = $1; $$ = merge($$, $3); }
     ;
 
-namespace_symtable_entry_rest:
+namespace_symtable_entry_attrs:
+    namespace_symtable_entry_attrs namespace_symtable_entry_attr { $$ = merge($1, $2); }
+    |
+    namespace_symtable_entry_attr { $$ = $1; }
+    ;
+
+namespace_symtable_entry_attr:
+    TOK_TYPESPEC { $$ = Json::Value(); $$["type"] = $1; }
+    |
+    TOK_ATTRS { $$ = Json::Value(); $$["attrs"] = $1; }
+    |
     TOK_ARGLIST { $$ = Json::Value(); $$["args"] = $1; }
     |
     TOK_ARRSPEC { $$ = Json::Value(); $$["arrayspec"] = $1; }
@@ -131,12 +132,13 @@ namespace_symtable_entry_rest:
     |
     TOK_GENIFACE { $$ = Json::Value(); $$["interface"] = $1; }
     |
-    TOK_RESULT TOK_ARGLIST { $$ = Json::Value(); $$["result"] = $1; $$["args"] = $2; }
+    TOK_COMPONENTS { $$ = Json::Value(); $$["components"] = $1; }
     |
-    TOK_VALUE TOK_ARRSPEC { $$ = Json::Value(); $$["value"] = $1; $$["arrayspec"] = $2; }
+    TOK_HASH { $$ = Json::Value(); $$["hash"] = $1;}
     |
-    TOK_COMPONENTS TOK_HASH TOK_PROCBINDINGS TOK_OPBINDINGS
-    { $$ = Json::Value(); $$["components"] = $1; $$["hash"] = $2; $$["procbindings"] = $3; $$["opbindings"] = $4; }
+    TOK_PROCBINDINGS { $$ = Json::Value(); $$["procbindings"] = $1; }
+    |
+    TOK_OPBINDINGS { $$ = Json::Value(); $$["opbindings"] = $1;}
     ;
 
 namespace_equivalences:
