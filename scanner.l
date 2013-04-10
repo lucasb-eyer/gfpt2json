@@ -213,6 +213,10 @@ size_t prev_indent_level()
     return TOK_SYMTREE;
 }
 
+<normal>"Equivalence: " { return TOK_EQUIVALENCE; }
+ /* Separator of two equivalences in the TOK_EQUIVALENCE case. */
+<normal>", " { return TOK_COMMASPACE; }
+
  /* Here we need to keep track of the indentation level of the following code,
     since we'll often times have to fake it. Thank you, labelled lines. */
 <normal>"code:" { g_current_codeblock_indent = g_indent_levels.top(); return TOK_CODE; }
@@ -264,6 +268,7 @@ size_t prev_indent_level()
 <normal>'[a-zA-Z][a-zA-Z_0-9]*' { yylval = mkval(yytext, yyleng-1, 1); return TOK_QUOTED_IDENTIFIER; }
  /* Interestingly, RETURN is always followed by a whitespace. */
 <normal>"RETURN"" "? { yylval = Json::Value("RETURN"); return TOK_IDENTIFIER; }
+<normal>[a-zA-Z][a-zA-Z_0-9():]* { yylval = mkval(yytext, yyleng, 0); return TOK_FULL_IDENTIFIER; }
 
 <normal>\d+     { yylval = Json::Value(Json::Int(strtol(yytext, 0, 10))); return TOK_NUMBER; }
 

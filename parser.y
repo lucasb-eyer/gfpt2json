@@ -48,14 +48,15 @@ Json::Value g_file;
 %token TOK_REST
 %token TOK_NUMBER
 
-%token TOK_IDENTIFIER
-%token TOK_QUOTED_IDENTIFIER
+%token TOK_IDENTIFIER TOK_QUOTED_IDENTIFIER TOK_FULL_IDENTIFIER
 %token TOK_CONTAINS
 
 %token TOK_NS TOK_PROCNAME TOK_DASHES
 
 %token TOK_SYMTREE TOK_TYPESPEC TOK_ATTRS TOK_ARGLIST TOK_ARRSPEC TOK_RESULT TOK_VALUE TOK_GENIFACE
 %token TOK_COMPONENTS TOK_HASH TOK_PROCBINDINGS TOK_OPBINDINGS
+
+%token TOK_EQUIVALENCE TOK_COMMASPACE
 
 %token TOK_CODE
 %token TOK_ENDBLOCK
@@ -81,6 +82,9 @@ namespace_with_children:
 namespace:
     namespace_head TOK_INDENT namespace_symtable code_section TOK_OUTDENT
     { $$ = $1; $$["symbols"] = $3; $$["code"] = $4; }
+    |
+    namespace_head TOK_INDENT namespace_symtable namespace_equivalences code_section TOK_OUTDENT
+    { $$ = $1; $$["symbols"] = $3; $$["equivalences"] = $4; $$["code"] = $5; }
     ;
 
 namespace_head:
@@ -133,6 +137,17 @@ namespace_symtable_entry_rest:
     |
     TOK_COMPONENTS TOK_HASH TOK_PROCBINDINGS TOK_OPBINDINGS
     { $$ = Json::Value(); $$["components"] = $1; $$["hash"] = $2; $$["procbindings"] = $3; $$["opbindings"] = $4; }
+    ;
+
+namespace_equivalences:
+    namespace_equivalences namespace_equivalence { $$ = $1; $$.append($2); }
+    |
+    namespace_equivalence { $$ = Json::Value(); $$.append($1); }
+    ;
+
+namespace_equivalence:
+    TOK_EQUIVALENCE TOK_FULL_IDENTIFIER TOK_COMMASPACE TOK_FULL_IDENTIFIER
+    { $$ = Json::Value(); $$["lhs"] = $2; $$["rhs"] = $4; }
     ;
 
 code_section:
