@@ -193,15 +193,10 @@ size_t prev_indent_level()
 
 <normal>\n[0-9]*      { g_current_line_indent = 0; indent_caller = YY_START; BEGIN(indent); }
 
- /* A type and its size of the form (REAL 8) */
-<normal>"("[A-Z]+" "[0-9]+(" "[0-9]*)?")"  { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
- /* Character sometimes has weird special thingys following it. */
-<normal>"(CHARACTER ".* { yylval = mkval(yytext, yyleng-1, 1); return TOK_TYPE; }
-
  /* The "Namespace:" part, so that it isn't matched by the "identifier" below. */
 <normal>"Namespace: ".*          { yylval = mkval(yytext, yyleng, 11); return TOK_NS; }
 <normal>"procedure name = ".*    { yylval = mkval(yytext, yyleng, 17); return TOK_PROCNAME; }
-<normal>"type spec : "           { return TOK_TYPESPEC; }
+<normal>"type spec : ".*         { yylval = mkval(yytext, yyleng-1, 13); return TOK_TYPESPEC; }
 <normal>"attributes: ".*         { yylval = mklst(yytext, yyleng-1, 13); return TOK_ATTRS; }
 <normal>"Array spec:".*          { yylval = mkval(yytext, yyleng, 11); return TOK_ARRSPEC; }
 <normal>"result: ".*             { yylval = mkval(yytext, yyleng,  8); return TOK_RESULT; }

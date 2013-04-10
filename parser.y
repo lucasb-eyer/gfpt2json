@@ -48,7 +48,6 @@ Json::Value g_file;
 %token TOK_REST
 %token TOK_NUMBER
 
-%token TOK_TYPE
 %token TOK_IDENTIFIER
 %token TOK_QUOTED_IDENTIFIER
 %token TOK_CONTAINS
@@ -103,18 +102,18 @@ namespace_symtable_entry:
     |
     TOK_SYMTREE
     TOK_INDENT
-        TOK_TYPESPEC TOK_TYPE
+        TOK_TYPESPEC
         TOK_ATTRS
     TOK_OUTDENT
-    { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $4; $$["attrs"] = $5; }
+    { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $3; $$["attrs"] = $4; }
     |
     TOK_SYMTREE
     TOK_INDENT
-        TOK_TYPESPEC TOK_TYPE
+        TOK_TYPESPEC
         TOK_ATTRS
         namespace_symtable_entry_rest
     TOK_OUTDENT
-    { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $4; $$["attrs"] = $5; $$ = merge($$, $6); }
+    { $$ = Json::Value(); $$["name"] = $1; $$["type"] = $3; $$["attrs"] = $4; $$ = merge($$, $5); }
     ;
 
 namespace_symtable_entry_rest:
