@@ -292,16 +292,24 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 
  /* Unfortunately, gcc prints the ELSE command on the same line as the */
  /* statement preceding it. We need to split it to its own line. */
- /* TODO: sometimes this is ELSE IF FOO BAR BAZ! */
-<normal>" ".*" "+"ELSE" {
-    yylval = mkval(yytext, yyleng-4, 1);
+<normal>.+("ELSE"|"ELSE IF".*)$ {
+    // This one is everything in front of the last ELSE, including spaces.
+    std::string before_else = std::string(yytext, std::string(yytext).rfind("ELSE"));
+    // Now we want to push spaces over to belong to the ELSE part.
+    // Nice thing is string::npos + 1 == 0 :)
+    const size_t else_spaces = before_else.find_last_not_of(' ') + 1;
+    before_else = before_else.substr(0, else_spaces);
+    // So this one is the ELSE part including the spaces right in front of ELSE.
+    const std::string else_ = std::string(yytext + else_spaces, yyleng - else_spaces);
 
-    // Put the ELSE statement on its own line with the current indent.
-    unput('E'); unput('S'); unput('L'); unput('E');
-    for(size_t i = 0 ; i < g_current_line_indent ; ++i) { unput(' '); }
+    // Put the ELSE (or ELSE IF ...) statement on its own line
+    for(std::string::const_reverse_iterator i = else_.rbegin() ; i != else_.rend() ; ++i) {
+        unput(*i);
+    }
     unput('\n');
-
-    return TOK_REST;
+    for(std::string::const_reverse_iterator i = before_else.rbegin() ; i != before_else.rend() ; ++i) {
+        unput(*i);
+    }
 }
 
  /* Sometimes appears at the end of a toplevel namespace. */
