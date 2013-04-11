@@ -39,6 +39,9 @@ void yyerror(const char *s);
 #define YYSTYPE Json::Value
 
 Json::Value g_file;
+
+/* Makes a new JSON object which contains the line and column ranges. */
+Json::Value mkobj(struct YYLTYPE const * const yylp1 = 0, struct YYLTYPE const * const yylp2 = 0);
 %}
 
 %token TOK_INDENT
@@ -81,15 +84,14 @@ namespace_with_children:
 
 namespace:
     namespace_head TOK_INDENT namespace_symtable code_section TOK_OUTDENT
-    { $$ = $1; $$["symbols"] = $3; $$["code"] = $4; }
+    { $$ = merge($1, mkobj(&@1, &@4)); $$["symbols"] = $3; $$["code"] = $4; }
     |
     namespace_head TOK_INDENT namespace_symtable namespace_equivalences code_section TOK_OUTDENT
-    { $$ = $1; $$["symbols"] = $3; $$["equivalences"] = $4; $$["code"] = $5; }
+    { $$ = merge($1, mkobj(&@1, &@5)); $$["symbols"] = $3; $$["equivalences"] = $4; $$["code"] = $5; }
     ;
 
 namespace_head:
-    TOK_NS TOK_PROCNAME
-    { $$ = Json::Value(); $$["type"] = "namespace"; $$["name"] = $2; $$["rest"] = $1; }
+    TOK_NS TOK_PROCNAME { $$ = mkobj(&@1, &@2); $$["type"] = "namespace"; $$["rest"] = $1; $$["name"] = $2; }
     ;
 
 namespace_symtable:
@@ -97,65 +99,65 @@ namespace_symtable:
     { $$ = $1; $$.append($2); }
     |
     namespace_symtable_entry
-    { $$ = Json::Value(); $$.append($1); }
+    { $$ = mkobj(); $$.append($1); }
     ;
 
 namespace_symtable_entry:
     TOK_SYMTREE
-    { $$ = Json::Value(); $$["name"] = $1; }
+    { $$ = mkobj(&@1); $$["name"] = $1; }
     |
     TOK_SYMTREE
     TOK_INDENT
         namespace_symtable_entry_attrs
     TOK_OUTDENT
-    { $$ = Json::Value(); $$["name"] = $1; $$ = merge($$, $3); }
+    { $$ = Json::Value(); $$["name"] = $1; $$ = merge(merge($$, $3), mkobj(&@1, &@3)); }
     ;
 
 namespace_symtable_entry_attrs:
-    namespace_symtable_entry_attrs namespace_symtable_entry_attr { $$ = merge($1, $2); }
+    namespace_symtable_entry_attrs namespace_symtable_entry_attr { $$ = merge(merge($1, $2), mkobj(&@1, &@2)); }
     |
     namespace_symtable_entry_attr { $$ = $1; }
     ;
 
 namespace_symtable_entry_attr:
-    TOK_TYPESPEC { $$ = Json::Value(); $$["type"] = $1; }
+    TOK_TYPESPEC { $$ = mkobj(&@1); $$["type"] = $1; }
     |
-    TOK_ATTRS { $$ = Json::Value(); $$["attrs"] = $1; }
+    TOK_ATTRS { $$ = mkobj(&@1); $$["attrs"] = $1; }
     |
-    TOK_ARGLIST { $$ = Json::Value(); $$["args"] = $1; }
+    TOK_ARGLIST { $$ = mkobj(&@1); $$["args"] = $1; }
     |
-    TOK_ARRSPEC { $$ = Json::Value(); $$["arrayspec"] = $1; }
+    TOK_ARRSPEC { $$ = mkobj(&@1); $$["arrayspec"] = $1; }
     |
-    TOK_RESULT  { $$ = Json::Value(); $$["result"] = $1; }
+    TOK_RESULT  { $$ = mkobj(&@1); $$["result"] = $1; }
     |
-    TOK_VALUE   { $$ = Json::Value(); $$["value"] = $1; }
+    TOK_VALUE   { $$ = mkobj(&@1); $$["value"] = $1; }
     |
-    TOK_GENIFACE { $$ = Json::Value(); $$["interface"] = $1; }
+    TOK_GENIFACE { $$ = mkobj(&@1); $$["interface"] = $1; }
     |
-    TOK_COMPONENTS { $$ = Json::Value(); $$["components"] = $1; }
+    TOK_COMPONENTS { $$ = mkobj(&@1); $$["components"] = $1; }
     |
-    TOK_HASH { $$ = Json::Value(); $$["hash"] = $1;}
+    TOK_HASH { $$ = mkobj(&@1); $$["hash"] = $1;}
     |
-    TOK_PROCBINDINGS { $$ = Json::Value(); $$["procbindings"] = $1; }
+    TOK_PROCBINDINGS { $$ = mkobj(&@1); $$["procbindings"] = $1; }
     |
-    TOK_OPBINDINGS { $$ = Json::Value(); $$["opbindings"] = $1;}
+    TOK_OPBINDINGS { $$ = mkobj(&@1); $$["opbindings"] = $1;}
     ;
 
 namespace_equivalences:
     namespace_equivalences namespace_equivalence { $$ = $1; $$.append($2); }
     |
-    namespace_equivalence { $$ = Json::Value(); $$.append($1); }
+    namespace_equivalence { $$ = mkobj(); $$.append($1); }
     ;
 
 namespace_equivalence:
     TOK_EQUIVALENCE TOK_FULL_IDENTIFIER TOK_COMMASPACE TOK_FULL_IDENTIFIER
-    { $$ = Json::Value(); $$["lhs"] = $2; $$["rhs"] = $4; }
+    { $$ = mkobj(&@1, &@4); $$["lhs"] = $2; $$["rhs"] = $4; }
     ;
 
 code_section:
-    TOK_CODE code_lines { $$ = $2; }
+    TOK_CODE code_lines { $$ = merge($2, mkobj(&@1, &@2)); }
     |
-    TOK_CODE { $$ = Json::Value(); }
+    TOK_CODE { $$ = mkobj(&@1); }
     ;
 
 code_lines:
@@ -163,21 +165,21 @@ code_lines:
     { $$ = $1; $$.append($2); }
     |
     code_line
-    { $$ = Json::Value(); $$.append($1); }
+    { $$ = mkobj(); $$.append($1); }
     ;
 
 code_line:
     TOK_IDENTIFIER TOK_REST TOK_INDENT code_lines TOK_OUTDENT
-    { $$ = Json::Value(); $$["op"] = $1; $$["args"] = $2; $$["children"] = $4; }
+    { $$ = mkobj(&@1, &@4); $$["op"] = $1; $$["args"] = $2; $$["children"] = $4; }
     |
     TOK_IDENTIFIER TOK_INDENT code_lines TOK_OUTDENT
-    { $$ = Json::Value(); $$["op"] = $1; $$["args"] = ""; $$["children"] = $3; }
+    { $$ = mkobj(&@1, &@3); $$["op"] = $1; $$["args"] = ""; $$["children"] = $3; }
     |
     TOK_IDENTIFIER TOK_REST
-    { $$ = Json::Value(); $$["op"] = $1; $$["args"] = $2; }
+    { $$ = mkobj(&@1, &@2); $$["op"] = $1; $$["args"] = $2; }
     |
     TOK_IDENTIFIER
-    { $$ = Json::Value(); $$["op"] = $1; $$["args"] = ""; }
+    { $$ = mkobj(&@1); $$["op"] = $1; $$["args"] = ""; }
     ;
 
 children:
@@ -185,7 +187,7 @@ children:
     { $$ = $1; $$.append($2); }
     |
     child
-    { $$ = Json::Value(); $$.append($1); }
+    { $$ = mkobj(); $$.append($1); }
     ;
 
 child:
@@ -197,6 +199,17 @@ child:
 %%
 
 const char* g_current_filename = "stdin";
+
+Json::Value mkobj(struct YYLTYPE const * const yylp1, struct YYLTYPE const * const yylp2) {
+    Json::Value ret;
+    if(yylp1) {
+        ret["line"] = yylp1->first_line;
+        ret["lastline"] = (yylp2 ? yylp2 : yylp1)->last_line;
+        ret["col"] = yylp1->first_column;
+        ret["lastcol"] = (yylp2 ? yylp2 : yylp1)->last_column;
+    }
+    return ret;
+}
 
 int main(int argc, char* argv[]) {
     yyin = stdin;
