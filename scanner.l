@@ -110,27 +110,18 @@ size_t prev_indent_level()
 %%
     int indent_caller = normal;
 
- /* This helps to keep track of the column number.
-  * Note that it won't work if you have a rule which includes a newline and is
-  * longer than one character because in that case that rule will be favored
-  * and this one here won't get called.
-  * TL;DR: If you have a rule which includes \n and more, you need to reset
-  *        yycolumn inside that rule!
-  */
-<*>\n { set_yycolumn(0); yylineno--; REJECT; }
-
  /* Everything runs in the <normal> mode and enters the <indent> mode
     when a newline symbol is encountered.
     There is no newline symbol before the first line, so we need to go
     into the <indent> mode by hand there.
  */
 <initial>.  { set_yycolumn(yycolumn-1); indent_caller = normal; yyless(0); BEGIN(indent); }
-<initial>\n { indent_caller = normal; yyless(0); BEGIN(indent); }
+<initial>\n { set_yycolumn(0); indent_caller = normal; yyless(0); BEGIN(indent); }
 
  /* The following are the rules that keep track of indentation. */
 <indent>" "     { g_current_line_indent++; }
 <indent>\t      { g_current_line_indent = (g_current_line_indent + TAB_WIDTH) & ~(TAB_WIDTH-1); }
-<indent>\n      { g_current_line_indent = 0; /* ignoring blank line */ }
+<indent>\n      { set_yycolumn(0); g_current_line_indent = 0; /* ignoring blank line */ }
 <indent><<EOF>> {
                     // When encountering the end of file, we want to emit an
                     // outdent for all indents currently left.
@@ -191,7 +182,15 @@ size_t prev_indent_level()
                     }
                 }
 
-<normal>\n[0-9]*      { g_current_line_indent = 0; indent_caller = YY_START; BEGIN(indent); }
+ /* Whenever we encounter a newline, we need to adapt the column number and go
+    into indentation mode to figure out the new line's indentation.
+  */
+<normal>\n {
+    set_yycolumn(0);
+    g_current_line_indent = 0;
+    indent_caller = YY_START;
+    BEGIN(indent);
+}
 
  /* The "Namespace:" part, so that it isn't matched by the "identifier" below. */
 <normal>"Namespace: ".*          { yylval = mkval(yytext, yyleng, 11); return TOK_NS; }
@@ -260,6 +259,8 @@ size_t prev_indent_level()
     for(size_t i = 0 ; i < where_to_put ; ++i) {
         unput(' ');
     }
+    // Since we unput a \n NOT followed by a number, we don't need to care about
+    // resetting the column; it will be done the next time the newline is parsed.
     unput('\n');
 }
 
