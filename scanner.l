@@ -300,7 +300,13 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
     const size_t else_spaces = before_else.find_last_not_of(' ') + 1;
     before_else = before_else.substr(0, else_spaces);
     // So this one is the ELSE part including the spaces right in front of ELSE.
-    const std::string else_ = std::string(yytext + else_spaces, yyleng - else_spaces);
+    std::string else_ = std::string(yytext + else_spaces, yyleng - else_spaces);
+
+    // Of course, RETURN aka "RETURN " makes our life harder, see its rule.
+    if(before_else.find("RETURN") != std::string::npos) {
+        before_else += " ";
+        else_ = " " + else_;
+    }
 
     // Put the ELSE (or ELSE IF ...) statement on its own line
     for(std::string::const_reverse_iterator i = else_.rbegin() ; i != else_.rend() ; ++i) {
