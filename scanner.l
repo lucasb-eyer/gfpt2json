@@ -270,8 +270,6 @@ size_t prev_indent_level()
 <normal>"RETURN"" "? { yylval = Json::Value("RETURN"); return TOK_IDENTIFIER; }
 <normal>[a-zA-Z][a-zA-Z_0-9():]* { yylval = mkval(yytext, yyleng, 0); return TOK_FULL_IDENTIFIER; }
 
-<normal>\d+     { yylval = Json::Value(Json::Int(strtol(yytext, 0, 10))); return TOK_NUMBER; }
-
 <normal>" "+    { return TOK_WS; }
 
  /* Unfortunately, gcc prints the ELSE command on the same line as the */

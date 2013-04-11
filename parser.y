@@ -49,7 +49,6 @@ Json::Value mkobj(struct YYLTYPE const * const yylp1 = 0, struct YYLTYPE const *
 
 %token TOK_WS
 %token TOK_REST
-%token TOK_NUMBER
 
 %token TOK_IDENTIFIER TOK_QUOTED_IDENTIFIER TOK_FULL_IDENTIFIER
 %token TOK_CONTAINS
