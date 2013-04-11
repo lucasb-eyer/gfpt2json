@@ -64,8 +64,12 @@ Json::Value mkobj(struct YYLTYPE const * const yylp1 = 0, struct YYLTYPE const *
 %token TOK_CODE
 %token TOK_ENDBLOCK
 
-%debug
+/*%debug*/
 %locations
+
+/* Better error messages. */
+%error-verbose
+%define "parse.lac" "full"
 
 %%
 parsetree:
@@ -247,6 +251,8 @@ int main(int argc, char* argv[]) {
 void yyerror(const char *s) {
     cerr << g_current_filename << ":" << yylloc.first_line << ":" << yylloc.first_column << "-" << yylloc.last_column << ": Parse error: " << s << endl;
     // Might as well halt now.
+    // Tried to do better error handling using the "error" terminal, but didn't
+    // get it to be satisfactory.
     exit(-1);
 }
 

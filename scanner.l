@@ -95,7 +95,7 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 %option yylineno
 %option noyywrap
 
-%option debug
+ /*%option debug*/
 %%
     int indent_caller = normal;
 
@@ -116,7 +116,6 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
                     // outdent for all indents currently left.
                     if(g_indent_levels.top() != 0) {
                         g_indent_levels.pop();
-                        std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
 
                         // See the same code below (<indent>.) for a rationale.
                         if(g_current_line_indent != g_indent_levels.top()) {
@@ -145,7 +144,6 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
                     // increase by one level at a time. Remember how many
                     // spaces this level has and emit an indentation token.
                     if(g_current_line_indent > g_indent_levels.top()) {
-                        std::cerr << "=== INDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
                         g_indent_levels.push(g_current_line_indent);
                         BEGIN(indent_caller);
                         return TOK_INDENT;
@@ -156,7 +154,6 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
                         // 'unput'ting fake lines which will give us the next
                         // outdent.
                         g_indent_levels.pop();
-                        std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
 
                         if(g_current_line_indent != g_indent_levels.top()) {
                             // Unput the rest of the current line, including the newline.
