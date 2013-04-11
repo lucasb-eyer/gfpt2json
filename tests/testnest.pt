@@ -1,0 +1,32 @@
+
+Namespace: A-H: (REAL 8) I-N: (INTEGER 4) O-Z: (REAL 8)
+procedure name = m_strgn
+  symtree: 'm_strgn'     || symbol: 'm_strgn'      
+    type spec : (UNKNOWN 0)
+    attributes: (MODULE )
+  symtree: 'strgn1'      || symbol: 'strgn1'       
+    type spec : (UNKNOWN 0)
+    attributes: (PROCEDURE MODULE-PROC  SUBROUTINE)
+    Formal arglist: k1d k2d k3d n3d n2d nop nn2d nn3d natd nmzd jspd ntypsd nmzxyd ntypd nlhd jmtd nmz jspins ntypsy nmzxy ntype nlh jri film zrfs invs2 nvac delz rmt dx namat zatom z1 invtab igrd invs nop2 bmat gmax symor mrot tau mx1 mx2 mx3 nq2 nq3 ngz nk1 nk2 nk3 neq kv2 kv3 sk2 sk3 nstr nstr2 ig2 igz ig rgphs izmin izmax phi2 kimax igfft pgfft kimax2 igfft2 pgfft2 pgft2x pgft2y pgft2xx pgft2yy pgft2xy
+
+  code:
+CONTAINS
+
+  Namespace: A-Z: (UNKNOWN 0)
+  procedure name = strgn1
+    symtree: 'angle'       || symbol: 'angle'        
+      type spec : (REAL 8)
+      attributes: (PROCEDURE MODULE-PROC  USE-ASSOC(m_angle) FUNCTION ELEMENTAL PURE)
+      result: angle
+      Formal arglist: x y
+
+    code:
+    DO strgn1:i=1 10 1
+      DO strgn1:i=1 10 1
+        ASSIGN inner fucker!
+120     NOP
+      ASSIGN outer mofo!
+    END DO
+    INQUIRE FILE='cdn1' EXIST=strgn1:l_cdn1
+    
+

@@ -1,0 +1,78 @@
+
+Namespace: A-H: (REAL 8) I-N: (INTEGER 4) O-Z: (REAL 8)
+procedure name = m_strgn
+  symtree: 'm_strgn'     || symbol: 'm_strgn'      
+    type spec : (UNKNOWN 0)
+    attributes: (MODULE )
+  symtree: 'strgn1'      || symbol: 'strgn1'       
+    type spec : (UNKNOWN 0)
+    attributes: (PROCEDURE MODULE-PROC  SUBROUTINE)
+    Formal arglist: k1d k2d k3d n3d n2d nop nn2d nn3d natd nmzd jspd ntypsd nmzxyd ntypd nlhd jmtd nmz jspins ntypsy nmzxy ntype nlh jri film zrfs invs2 nvac delz rmt dx namat zatom z1 invtab igrd invs nop2 bmat gmax symor mrot tau mx1 mx2 mx3 nq2 nq3 ngz nk1 nk2 nk3 neq kv2 kv3 sk2 sk3 nstr nstr2 ig2 igz ig rgphs izmin izmax phi2 kimax igfft pgfft kimax2 igfft2 pgfft2 pgft2x pgft2y pgft2xx pgft2yy pgft2xy
+  symtree: 'strgn2'      || symbol: 'strgn2'       
+    type spec : (UNKNOWN 0)
+    attributes: (PROCEDURE MODULE-PROC  SUBROUTINE)
+    Formal arglist: k1d k2d k3d n3d n2d nop nn2d nn3d natd nmzd jspd ntypsd nmzxyd ntypd nlhd jmtd nmz jspins ntypsy nmzxy ntype nlh jri film zrfs invs2 nvac delz rmt dx namat zatom z1 invtab igrd invs bmat gmax symor mrot tau mx1 mx2 mx3 nq2 nq3 ngz nk1 nk2 nk3 neq kv2 kv3 sk2 sk3 nstr nstr2 ig2 igz ig rgphs izmin izmax kimax igfft pgfft kimax2 igfft2 pgfft2 pgft2x pgft2y pgft2xx pgft2yy pgft2xy
+
+  code:
+CONTAINS
+
+  Namespace: A-Z: (UNKNOWN 0)
+  procedure name = strgn2
+    symtree: '__convert_i4_r8'|| symbol: '__convert_i4_r8' 
+      type spec : (REAL 8)
+      attributes: (PROCEDURE  FUNCTION ELEMENTAL PURE)
+      result: __convert_i4_r8
+    symtree: 'arltv3'      || symbol: 'arltv3'       
+      type spec : (REAL 8)
+      attributes: (VARIABLE )
+    symtree: 'bmat'        || symbol: 'bmat'         
+      type spec : (REAL 8)
+      attributes: (VARIABLE  DIMENSION DUMMY(IN))
+      Array spec:(2 [0] AS_EXPLICIT 1 3 1 3 )
+    symtree: 'ig'          || symbol: 'ig'           
+      type spec : (INTEGER 4)
+      attributes: (VARIABLE  DIMENSION DUMMY(OUT))
+      Array spec:(3 [0] AS_EXPLICIT (U- strgn2:k1d) strgn2:k1d (U- strgn2:k2d) strgn2:k2d (U- strgn2:k3d) strgn2:k3d )
+    symtree: 'int'         || symbol: 'int'          
+      type spec : (INTEGER 4)
+      attributes: (PROCEDURE  INTRINSIC FUNCTION)
+      Formal arglist: a kind
+    symtree: 'space'       || symbol: 'space'        
+      type spec : (CHARACTER 8 1)
+      attributes: (VARIABLE  DIMENSION DATA)
+      value: (/ '        ' /)
+      Array spec:(1 [0] AS_EXPLICIT 1 10 )
+    symtree: 'pimach'      || symbol: 'pimach'       
+      type spec : (REAL 8)
+      attributes: (PROCEDURE MODULE-PROC  USE-ASSOC(m_constants) FUNCTION PURE)
+      result: pimach
+    symtree: 'strgn2'      || symbol: 'strgn2' from namespace 'm_strgn'
+    symtree: 'symor'       || symbol: 'symor'        
+      type spec : (LOGICAL 4)
+      attributes: (VARIABLE  DUMMY(IN))
+
+    code:
+    ASSIGN strgn2:tpi (* 2.0000000000000000 pimach[[()]])
+    ASSIGN strgn2:nfftx (* 3 strgn2:k1d)
+    ASSIGN strgn2:nffty (* 3 strgn2:k2d)
+    ASSIGN strgn2:nfftz (* 3 strgn2:k3d)
+    ASSIGN strgn2:nfftxy (* (* 9 strgn2:k1d) strgn2:k2d)
+    DO strgn2:i=1 10 1
+      ASSIGN strgn2:name(strgn2:i) strgn2:space(strgn2:i)
+    END DO
+    ASSIGN strgn2:ordered .false.
+    INQUIRE FILE='cdn1' EXIST=strgn2:l_cdn1
+    IF strgn2:l_cdn1
+      OPEN UNIT=71 FILE='cdn1' STATUS='unknown' FORM='unformatted'
+      READ UNIT=71
+      TRANSFER strgn2:name(FULL)
+      DT_END ERR=99 END=99
+      IF (= strgn2:name(10) 'ordered*')
+        ASSIGN strgn2:ordered .true.
+      ENDIF
+99    CONTINUE
+      CLOSE UNIT=71    ELSE
+      ASSIGN strgn2:ordered .true.
+    ENDIF
+    
+

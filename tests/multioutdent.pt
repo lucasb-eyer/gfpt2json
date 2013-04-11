@@ -1,0 +1,22 @@
+
+Namespace: A-H: (REAL 8) I-N: (INTEGER 4) O-Z: (REAL 8)
+procedure name = m_strgn
+  symtree: 'm_strgn'     || symbol: 'm_strgn'      
+    type spec : (UNKNOWN 0)
+    attributes: (MODULE )
+
+  code:
+CONTAINS
+
+  Namespace: A-Z: (UNKNOWN 0)
+  procedure name = strgn2
+    symtree: 'strgn2'      || symbol: 'strgn2' from namespace 'm_strgn'
+
+    code:
+    DO foo
+      DO bar
+          DO baz
+            blob
+    OLOL
+    
+
