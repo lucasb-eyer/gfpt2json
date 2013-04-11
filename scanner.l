@@ -227,45 +227,58 @@ Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' '
 <normal>CONTAINS { return TOK_CONTAINS; }
 
  /* The labelled ones are _really_ ugly.
-    This rule tries to eat up the label only and put the rest back into the
-    input at the correct indentation level.
 
-    The label always begins at the first column and takes 6 characters.
+    The label always begins at the first column and takes up 6 characters.
     (left-aligned, filled with whitespace on the right; 7 including the \n)
     What follows these 6 characters is a sometimes correctly and sometimes
     incorrectly indented line. This line is always missing the 'baseline
     indentation', i.e. the indentation of the current code block.
 
-    I couldn't further specify the "sometimes", so this rule tries to detect
-    these cases and 'fix' them by placing the rest of the line back such that
-    it will create one OUTDENT token at most.
+    Examples:
+
+        GOTO 270
+    10    CONTINUE
+        DO ...
+
+    Here, clearly, the CONTINUE is on the same line as the GOTO and DO, the
+    apparent indentation comes only from the 6-chars wide label.
+
+        IF foo
+          ASSIGN bar
+    99    CONTINUE
+          CLOSE
+        ENDIF
+
+    Here, the CONTINUE clearly is on the same line as the ASSIGN and CLOSE,
+    suggesting we cannot trust the spaces behind the label.
+
+        IF foo
+    120   IF bar
+            ASSIGN baz
+
+    Here, from the scanner's POV, the situation is exactly the same as in the
+    first example. But clearly the labelled IF is at the correct indentation...
+    what do?
+
+        DO 210 foo
+          ASSIGN bar
+    210     NOP
+        ASSIGN baz
+
+    Here, NOP could either be inside the DO (same level as ASSIGN bar) or the
+    end of the DO (same level as ASSIGN baz).
+
+    The easy-and-correct-99%-of-the-cases way out is to just eat up the label
+    and ALL of the following spaces, skipping indentation detection, such that
+    the statement is always at the same level as the previous statement.
+    That's what this does. The edge-cases will be parsed in the wrong
+    indentation-level.
   */
-<normal>\n[0-9]+" "+.* {
+<normal>\n[0-9]+" "+ {
     // Keep track of the label we need to attach to the next identifier.
     // TODO: Make use of this :)
     g_previous_label = Json::Value(Json::Int64(strtol(yytext, 0, 10)));
-
-    // The amount of spaces present after the label's 6 characters.
-    // This is the indentation at which the rest would be placed.
-    const size_t present_spaces = std::string(yytext + 7).find_first_not_of(' ', 0);
-
-    // Figure out the indentation one level before the current one.
-    const size_t prev_indent = prev_indent_level();
-    size_t where_to_put = g_current_codeblock_indent;
-    if(where_to_put + present_spaces < prev_indent) {
-        // If the suggested placement would produce more than one outdent token,
-        // disregard the suggested placement and place it so as to generate only one.
-        where_to_put = prev_indent - present_spaces;
-    }
-    // Put back everything but the newline and the 6 fields for the label.
-    yyless(7);
-    // And put the "right" amount of whitespaces to get the correct indentation.
-    for(size_t i = 0 ; i < where_to_put ; ++i) {
-        unput(' ');
-    }
-    // Since we unput a \n NOT followed by a number, we don't need to care about
-    // resetting the column; it will be done the next time the newline is parsed.
-    unput('\n');
+    set_yycolumn(yyleng-1);
 }
 
  /* Any identifier */
