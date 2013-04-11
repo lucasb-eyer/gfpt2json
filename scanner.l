@@ -37,6 +37,7 @@ Json::Value g_previous_label;
 /* globals to track current indentation */
 int g_current_line_indent = 0;   /* indentation of the current line */
 std::stack<size_t> g_indent_levels;
+int g_is_fake_outdent_symbol = 0;
 
 /* TODO: error on tabs/spaces mix? */
 static const unsigned int TAB_WIDTH = 2;
@@ -79,18 +80,6 @@ Json::Value mkval(const char* yytext, size_t yylen, size_t pre)
 Json::Value mklst(const char* yytext, size_t yylen, size_t pre, char delim = ' ')
 {
     return split(std::string(yytext+pre, yylen-pre));
-}
-
-size_t prev_indent_level()
-{
-    size_t ret = g_indent_levels.empty() ? 0 : g_indent_levels.top();
-    if(g_indent_levels.size() > 1) {
-        size_t tmp = g_indent_levels.top();
-        g_indent_levels.pop();
-        ret = g_indent_levels.top();
-        g_indent_levels.push(tmp);
-    }
-    return ret;
 }
 
 %}
@@ -146,7 +135,10 @@ size_t prev_indent_level()
                 }
 
 <indent>.       {
-                    unput(*yytext);
+                    if(!g_is_fake_outdent_symbol) {
+                        unput(*yytext);
+                    }
+                    g_is_fake_outdent_symbol = 0;
                     set_yycolumn(yycolumn-1);
 
                     // Indentation level has increased. It can only ever
@@ -167,10 +159,22 @@ size_t prev_indent_level()
                         std::cerr << "=== OUTDENT (currline: " << g_current_line_indent << ", level: " << g_indent_levels.top() << ")" << std::endl;
 
                         if(g_current_line_indent != g_indent_levels.top()) {
+                            // Unput the rest of the current line, including the newline.
+                            // We want to keep it untouched.
+                            for(size_t i = 0 ; i < g_current_line_indent ; ++i) {
+                                unput(' ');
+                            }
                             unput('\n');
+                            // Now, insert a fake character indented just so
+                            // that we get a correct outdent the next time.
+                            unput('.');
+                            // Though we need to remember that it's a fake one
+                            // so we can ignore the symbol.
+                            g_is_fake_outdent_symbol = 1;
                             for(size_t i = 0 ; i < g_indent_levels.top() ; ++i) {
                                 unput(' ');
                             }
+                            unput('\n');
                         } else {
                             BEGIN(indent_caller);
                         }
