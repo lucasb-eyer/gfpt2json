@@ -212,7 +212,9 @@ Json::Value mkobj(struct YYLTYPE const * const yylp1, struct YYLTYPE const * con
 
 int main(int argc, char* argv[]) {
     yyin = stdin;
+#if YYDEBUG
     yydebug = 1;
+#endif
 
     if(argc == 2) {
         yyin = fopen(argv[1], "r");
