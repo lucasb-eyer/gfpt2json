@@ -38,6 +38,7 @@ void yyerror(const char *s);
 
 #define YYSTYPE Json::Value
 
+const char* g_current_filename = "stdin";
 Json::Value g_file;
 
 /* Makes a new JSON object which contains the line and column ranges. */
@@ -179,6 +180,17 @@ code_line:
     |
     TOK_IDENTIFIER
     { $$ = mkobj(&@1); $$["op"] = $1; $$["args"] = ""; }
+    |
+    TOK_INDENT code_lines TOK_OUTDENT
+    /* TODO: UGLY HACK to work around pathological cases like
+       optional.f.parsetree:488. THIS FEELS SO WRONG. but it works.
+       It creates a shift/reduce conflict when taken together with code_lines.
+       Luckily, Bison's handling of that conflict is the one we expect.
+     */
+    {
+        std::cerr << g_current_filename << ":" << @1.first_line << ":" << @1.first_column << "-" << @2.last_line << ":" << @2.last_column << ": Parse error: incorrectly indented code line(s). Code will be nested incorrectly." << endl;
+        $$ = mkobj(&@1, &@2); $$["op"] = ""; $$["args"] = ""; $$["children"] = $2;
+    }
     ;
 
 children:
@@ -196,8 +208,6 @@ child:
     ;
 
 %%
-
-const char* g_current_filename = "stdin";
 
 Json::Value mkobj(struct YYLTYPE const * const yylp1, struct YYLTYPE const * const yylp2) {
     Json::Value ret;
